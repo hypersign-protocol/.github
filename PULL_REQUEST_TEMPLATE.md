@@ -1,55 +1,29 @@
 ## 🎯 Purpose
-Explain *why* this change is needed (the problem it solves, or the value it adds).
+Why is this change needed? (problem it solves or value it adds)
 
 ---
 
-## 📝 Summary of Changes
-- Short, high-level list of what was done.
-- Focus on the outcome, not low-level details.
+## 📝 Changes
+- Brief list of main updates
 
 ---
 
-## 🔄 Type of Change
-Select all that apply:
+## 🔄 Type
 - [ ] 🚀 Feature
-- [ ] 🐛 Bug fix
-- [ ] 📝 Documentation
-- [ ] ♻️ Refactor / Tech Debt
+- [ ] 🐛 Fix
+- [ ] 📝 Docs
+- [ ] ♻️ Refactor
 - [ ] ✅ Tests
-- [ ] 🔧 Build / CI / Config
-- [ ] Other (please specify)
+- [ ] 🔧 Config / CI
 
 ---
 
-## 🔗 Related Issue / Ticket
-Closes #ISSUE_ID or relates to #ISSUE_ID
-
----
-
-## 🧪 Testing Strategy
-- How was this tested? (unit, integration, manual, staging link, etc.)
-- Any edge cases to be aware of?
+## 🧪 Testing
+How did you test this? (unit/integration/manual)
 
 ---
 
 ## ✅ Checklist
-- [ ] Code follows Hypermine’s coding standards
-- [ ] Tests written/updated for changes
-- [ ] Documentation updated if applicable
-- [ ] No new security issues introduced
-- [ ] Verified locally (or staging link provided)
-
----
-
-## 📷 Screenshots / Logs (if relevant)
-<details>
-<summary>Expand</summary>
-
-<!-- Paste screenshots, logs, or output here -->
-
-</details>
-
----
-
-## 🤝 Reviewer Notes
-Anything specific reviewers should pay attention to (e.g., risky areas, assumptions made).
+- [ ] Code follows Hypermine standards
+- [ ] Tests/docs updated if needed
+- [ ] Verified locally
