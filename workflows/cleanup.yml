@@ -1,0 +1,117 @@
+name: Weekly Cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * 0' # Every Sunday at 03:00 UTC
+  workflow_dispatch:     # Allow manual trigger
+
+permissions:
+  actions: write
+  packages: write
+
+jobs:
+  delete-old-artifacts:
+    name: Delete Old Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete artifacts older than 7 days (keep last 5 per repo)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const days = 7;
+            const keepArtifacts = 5;
+            const msPerDay = 86_400_000;
+            const cutoff = new Date(Date.now() - days * msPerDay);
+
+            const repos = await github.paginate(
+              github.rest.repos.listForAuthenticatedUser,
+              { per_page: 100 }
+            );
+
+            for (const repo of repos) {
+              const artifacts = await github.paginate(
+                github.rest.actions.listArtifactsForRepo,
+                { owner: repo.owner.login, repo: repo.name, per_page: 100 }
+              );
+
+              // Sort newest first so we can always protect the last N
+              artifacts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+              for (let i = 0; i < artifacts.length; i++) {
+                const artifact = artifacts[i];
+                // Always keep the most recent keepArtifacts entries
+                if (i < keepArtifacts) continue;
+                if (new Date(artifact.created_at) < cutoff) {
+                  console.log(`Deleting artifact "${artifact.name}" (${artifact.size_in_bytes} bytes) from ${repo.full_name}`);
+                  await github.rest.actions.deleteArtifact({
+                    owner: repo.owner.login,
+                    repo: repo.name,
+                    artifact_id: artifact.id,
+                  });
+                }
+              }
+            }
+
+  delete-old-packages:
+    name: Delete Old Package Versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old package versions (keep last 5, protect tagged, min 7 days old)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const keepVersions = 5;   // always retain the N most recent versions
+            const minAgeDays  = 7;    // never delete a version younger than this
+            const msPerDay    = 86_400_000;
+            const cutoff      = new Date(Date.now() - minAgeDays * msPerDay);
+            const packageTypes = ['npm', 'maven', 'rubygems', 'docker', 'nuget', 'container'];
+
+            for (const packageType of packageTypes) {
+              let packages;
+              try {
+                packages = await github.paginate(
+                  github.rest.packages.listPackagesForAuthenticatedUser,
+                  { package_type: packageType, per_page: 100 }
+                );
+              } catch {
+                continue; // package type not used, skip
+              }
+
+              for (const pkg of packages) {
+                const versions = await github.paginate(
+                  github.rest.packages.getAllPackageVersionsForPackageOwnedByAuthenticatedUser,
+                  { package_type: packageType, package_name: pkg.name, per_page: 100 }
+                );
+
+                // Sort newest first so slice(keepVersions) is always the oldest extras
+                versions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                const candidates = versions.slice(keepVersions);
+
+                for (const version of candidates) {
+                  // Safety: never delete a version tagged "latest"
+                  const tags = version.metadata?.container?.tags ?? [];
+                  if (tags.includes('latest')) {
+                    console.log(`Skipping "latest" tagged version of "${pkg.name}"`);
+                    continue;
+                  }
+
+                  // Safety: never delete something published less than minAgeDays ago
+                  if (new Date(version.created_at) >= cutoff) {
+                    console.log(`Skipping recent version of "${pkg.name}" created ${version.created_at}`);
+                    continue;
+                  }
+
+                  console.log(`Deleting ${packageType} package "${pkg.name}" version ${version.id} created ${version.created_at}`);
+                  try {
+                    await github.rest.packages.deletePackageVersionForAuthenticatedUser({
+                      package_type: packageType,
+                      package_name: pkg.name,
+                      package_version_id: version.id,
+                    });
+                  } catch (err) {
+                    console.warn(`  Skipped: ${err.message}`);
+                  }
+                }
+              }
+            }
