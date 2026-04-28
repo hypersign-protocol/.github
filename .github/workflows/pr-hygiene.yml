@@ -29,9 +29,9 @@ jobs:
           base_ref="${{ github.event.pull_request.base.ref }}"
           git fetch origin "$base_ref"
           files=$(git diff --name-only "origin/$base_ref"...HEAD || true)
-          printf "%s" "$files" > changed_files.txt
+          printf "%s\n" "$files" > changed_files.txt
           echo "list<<EOF" >> $GITHUB_OUTPUT
-          printf "%s" "$files" >> $GITHUB_OUTPUT
+          printf "%s\n" "$files" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Check for skip label
